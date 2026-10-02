@@ -35,9 +35,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <script>
 var $=function(s){return document.querySelector(s)};
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
-var TIPI=['Letto','Armadio','Scrivania','Comodino','Scarpiera'],CONDS=['buono','usurato','da sostituire'],CATS=['Idraulico','Elettrico','Riscaldamento','Infissi','Altro'],PRIO=['bassa','media','urgente'],STATI=['agibile','in manutenzione','non idonea'];
+var TIPI=['Letto','Armadio','Scrivania','Comodino','Scarpiera','Sedia','Lampada','Altro'],CONDS=['buono','usurato','da sostituire'],CATS=['Idraulico','Elettrico','Riscaldamento','Infissi','Altro'],PRIO=['bassa','media','urgente'],STATI=['agibile','in manutenzione','non idonea'];
 var VOCI=['Letti rifatti','Armadi e scarpiere in ordine','Scrivanie e comodini sgombri','Pavimento pulito','Bagno pulito','Cestini svuotati','Finestre e tende in ordine'];
-var K='camerate_v1',S=null;
+var VER='4',K='camerate_v1',S=null;
 function today(){return new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10)}
 var V={tab:'cam',piano:2,sel:null,edit:null,msg:'',warn:false,c:{},pend:[],pendS:[],f:{g_data:today(),edata:today(),tipo:'Letto',n_ala:'Levante',n_cap:'8',g_cat:'Idraulico',g_prio:'media',ecat:'Idraulico',econd:'buono'}};
 try{S=JSON.parse(localStorage.getItem(K))}catch(e){}
@@ -86,11 +86,14 @@ function arrView(){
  var L=S.arredi.filter(function(a){return !q||[a.qr,a.sn,a.desc,a.tipo,a.camera].join(' ').toLowerCase().indexOf(q)>=0});
  var h='<div class="card"><p class="t">Censimento</p><label class="s">Camerata</label><select data-f="camera">'+opt(cams(),V.f.camera)+'</select><label class="s">Codice QR</label><div class="row">'+inp('qr','Scansiona o digita')+'<button data-a="scan">Scansiona</button></div><video id="vid" hidden playsinline muted></video><label class="s">Tipo</label><select data-f="tipo">'+opt(TIPI,V.f.tipo)+'</select><label class="s">Numero di serie</label>'+inp('sn','Numero di serie')+'<label class="s">Descrizione</label>'+inp('desc','Descrizione')+'<p class="s">Foto del dettaglio (massimo 3)</p>'+foto('new')+'<div><button class="pri" data-a="addarr" style="margin-top:8px">Salva arredo</button></div>'+msg()+'</div>';
  h+='<p class="s">'+S.arredi.filter(function(a){return !a.dismesso}).length+' arredi in uso</p>'+inp('q','Cerca codice, serie, camerata');
- h+=L.map(function(a){
+ var LA=L.filter(function(a){return !a.dismesso}),LD=L.filter(function(a){return a.dismesso});
+ var row=function(a){
   var g=S.segn.filter(function(s){return s.arredo===a.qr}),ga=g.filter(function(s){return s.stato!=='chiusa'}).length;
   var r='<div class="li"><div><b>'+a.tipo+'</b> '+esc(a.qr)+(a.dismesso?' (dismesso)':'')+'<p class="s">Camerata '+a.camera+' · '+esc(a.sn)+' · '+a.cond+(ga?' · '+ga+(ga>1?' guasti aperti':' guasto aperto'):'')+'</p></div><button data-a="edit" data-v="'+esc(a.qr)+'">'+(V.edit===a.qr?'Chiudi':'Apri')+'</button></div>';
   if(V.edit===a.qr)r+='<div class="card"><p class="s">'+esc(a.desc)+'</p>'+foto('a:'+a.qr)+'<label class="s">Camerata</label><select data-f="ecamera">'+opt(cams(),V.f.ecamera)+'</select><label class="s">Condizione</label><select data-f="econd">'+opt(CONDS,V.f.econd)+'</select><div class="row"><button class="pri" data-a="saveedit">Salva</button><button data-a="dismetti">'+(a.dismesso?'Ripristina':'Dismetti')+'</button></div><p class="t" style="margin-top:12px">Guasti dell\'arredo</p>'+(g.map(function(s){return '<p class="s">'+esc(s.cat)+' · '+s.stato+(s.ril?' · rilevato il '+fd(s.ril):'')+': '+esc(s.desc)+'</p>'}).join('')||'<p class="s">Nessun guasto.</p>')+'<select data-f="ecat">'+opt(CATS,V.f.ecat)+'</select>'+inp('edesc','Descrizione del guasto')+'<label class="s">Data di rilevazione</label>'+inp('edata','','date')+'<p class="s">Foto del guasto (massimo 3)</p>'+foto('newseg')+'<div><button data-a="segarr" style="margin-top:8px">Segnala guasto</button></div></div>';
-  return r}).join('');
+  return r};
+ h+=LA.map(row).join('')||'<p class="s">Nessun arredo in uso.</p>';
+ h+='<div class="card"><div class="row"><span class="t" style="flex:1">Dismessi ('+LD.length+')</span><button data-a="showd">'+(V.showD?'Nascondi':'Mostra')+'</button></div>'+(V.showD?(LD.map(function(a){return '<div class="li"><div><b>'+a.tipo+'</b> '+esc(a.qr)+'<p class="s">Camerata '+a.camera+' · '+esc(a.sn)+'</p></div><div class="row"><button data-a="ripr" data-v="'+esc(a.qr)+'">Ripristina</button><button data-a="elim" data-v="'+esc(a.qr)+'" style="color:var(--kot)">Elimina</button></div></div>'}).join('')||'<p class="s">Nessun arredo dismesso.</p>'):'')+'</div>';
  return h}
 
 function segView(){
@@ -98,7 +101,7 @@ function segView(){
  return '<div class="card"><p class="t">Nuova segnalazione</p><label class="s">Camerata</label><select data-f="g_camera">'+opt(cams(),V.f.g_camera)+'</select><label class="s">Codice arredo (facoltativo)</label>'+inp('g_arredo','Codice QR')+'<label class="s">Categoria</label><select data-f="g_cat">'+opt(CATS,V.f.g_cat)+'</select><label class="s">Priorità</label><select data-f="g_prio">'+opt(PRIO,V.f.g_prio)+'</select><label class="s">Descrizione</label><textarea data-f="g_desc" rows="2">'+esc(V.f.g_desc)+'</textarea><label class="s">Data di rilevazione</label>'+inp('g_data','','date')+'<p class="s">Foto del guasto (massimo 3)</p>'+foto('newseg')+'<div><button class="pri" data-a="addseg" style="margin-top:8px">Salva segnalazione</button></div>'+msg()+'</div>'+(L.map(segItem).join('')||'<p class="s">Nessuna segnalazione.</p>')}
 
 function datiView(){
- return '<div class="card"><p class="t">Backup e trasferimento</p><p class="s">Ultimo backup: '+(S.bk?dt(S.bk):'mai')+'. I dati e le foto sono solo su questo dispositivo: senza backup, se il browser viene svuotato o il dispositivo si perde, si perdono.</p><button class="pri" data-a="exp">Esporta backup</button><p class="s">Per passare dal telefono al tablet: esporta qui, copia il file sul tablet e importalo.</p><label class="btn">Importa backup<input type="file" accept=".json,application/json" data-imp="1"></label>'+msg()+'</div><div class="card"><p class="s">'+S.camere.length+' camerate, '+S.arredi.length+' arredi, '+S.segn.length+' segnalazioni.</p></div>'}
+ return msg()+'<div class="card"><p class="t">Backup e trasferimento</p><p class="s">Ultimo backup: '+(S.bk?dt(S.bk):'mai')+'. I dati e le foto sono solo su questo dispositivo: senza backup, se il browser viene svuotato o il dispositivo si perde, si perdono.</p><button class="pri" data-a="exp">Esporta backup</button><p class="s">Per passare dal telefono al tablet: esporta qui, copia il file sul tablet e importalo.</p><label class="btn">Importa backup<input type="file" accept=".json,application/json" data-imp="1"></label></div><div class="card"><p class="t">Esporta in Excel</p><p class="s">File .xlsx con tre fogli: Camerate, Arredi, Segnalazioni. Le foto non sono incluse.</p><button class="pri" data-a="expx">Esporta in Excel</button></div><div class="card"><p class="s">'+S.camere.length+' camerate, '+S.arredi.length+' arredi, '+S.segn.length+' segnalazioni. Versione app: '+VER+'.</p></div>'}
 
 function render(){
  var old=!S.bk||Date.now()-S.bk>7*864e5;
@@ -130,6 +133,41 @@ function imp(f){var r=new FileReader();r.onload=async function(){
   S=o.S;S.ctrl=S.ctrl||[];save();await pOp(function(st){st.clear()});for(var i=0;i<(o.ph||[]).length;i++){var x=o.ph[i];await pOp(function(st){st.put(x)})}V.msg='Dati importati.'}catch(e){V.msg='File non valido.'}
  render()};r.readAsText(f)}
 
+/*X*/
+var STYLES='<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+function crc32(b){var t=crc32.t;if(!t){t=crc32.t=[];for(var n=0;n<256;n++){var c=n;for(var k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}}var r=-1;for(var i=0;i<b.length;i++)r=t[(r^b[i])&255]^(r>>>8);return(r^-1)>>>0}
+function zip(files){var enc=new TextEncoder(),out=[],cd=[],off=0;
+ files.forEach(function(f){var nb=enc.encode(f.n),c=crc32(f.d),h=new DataView(new ArrayBuffer(30));
+  h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x0800,true);h.setUint16(12,0x21,true);h.setUint32(14,c,true);h.setUint32(18,f.d.length,true);h.setUint32(22,f.d.length,true);h.setUint16(26,nb.length,true);
+  out.push(new Uint8Array(h.buffer),nb,f.d);
+  var e=new DataView(new ArrayBuffer(46));
+  e.setUint32(0,0x02014b50,true);e.setUint16(4,20,true);e.setUint16(6,20,true);e.setUint16(8,0x0800,true);e.setUint16(14,0x21,true);e.setUint32(16,c,true);e.setUint32(20,f.d.length,true);e.setUint32(24,f.d.length,true);e.setUint16(28,nb.length,true);e.setUint32(42,off,true);
+  cd.push(new Uint8Array(e.buffer),nb);off+=30+nb.length+f.d.length});
+ var cs=0;cd.forEach(function(x){cs+=x.length});
+ var z=new DataView(new ArrayBuffer(22));z.setUint32(0,0x06054b50,true);z.setUint16(8,files.length,true);z.setUint16(10,files.length,true);z.setUint32(12,cs,true);z.setUint32(16,off,true);
+ return new Blob(out.concat(cd,[new Uint8Array(z.buffer)]),{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}
+function colL(i){var s='';i++;while(i>0){var m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=Math.floor((i-1)/26)}return s}
+function xe(s){return String(s).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]}).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'')}
+function sheetXml(rows){var w=[];rows.forEach(function(r){r.forEach(function(v,i){w[i]=Math.max(w[i]||8,Math.min(50,String(v).length+2))})});
+ return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>'+w.map(function(x,i){return '<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+x+'" customWidth="1"/>'}).join('')+'</cols><sheetData>'+rows.map(function(r,ri){return '<row r="'+(ri+1)+'">'+r.map(function(v,ci){var ref=colL(ci)+(ri+1);if(typeof v==='number')return '<c r="'+ref+'"><v>'+v+'</v></c>';return '<c r="'+ref+'" t="inlineStr"'+(ri===0?' s="1"':'')+'><is><t xml:space="preserve">'+xe(v)+'</t></is></c>'}).join('')+'</row>'}).join('')+'</sheetData></worksheet>'}
+function xlsx(sh){var enc=new TextEncoder(),H='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',R='http://schemas.openxmlformats.org/officeDocument/2006/relationships/',O='application/vnd.openxmlformats-officedocument.spreadsheetml.';
+ var f=[{n:'[Content_Types].xml',d:enc.encode(H+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="'+O+'sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="'+O+'styles+xml"/>'+sh.map(function(s,i){return '<Override PartName="/xl/worksheets/sheet'+(i+1)+'.xml" ContentType="'+O+'worksheet+xml"/>'}).join('')+'</Types>')},
+ {n:'_rels/.rels',d:enc.encode(H+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="'+R+'officeDocument" Target="xl/workbook.xml"/></Relationships>')},
+ {n:'xl/workbook.xml',d:enc.encode(H+'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="'+R.slice(0,-1)+'"><sheets>'+sh.map(function(s,i){return '<sheet name="'+s.n+'" sheetId="'+(i+1)+'" r:id="rId'+(i+1)+'"/>'}).join('')+'</sheets></workbook>')},
+ {n:'xl/_rels/workbook.xml.rels',d:enc.encode(H+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+sh.map(function(s,i){return '<Relationship Id="rId'+(i+1)+'" Type="'+R+'worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>'}).join('')+'<Relationship Id="rId'+(sh.length+1)+'" Type="'+R+'styles" Target="styles.xml"/></Relationships>')},
+ {n:'xl/styles.xml',d:enc.encode(H+STYLES)}];
+ sh.forEach(function(s,i){f.push({n:'xl/worksheets/sheet'+(i+1)+'.xml',d:enc.encode(sheetXml(s.rows))})});
+ return zip(f)}
+function xdata(){var ala={};S.camere.forEach(function(c){ala[c.n]=c.ala});
+ var C=[['Numero','Ala','Piano','Posti','Stato','Arredi in uso','Segnalazioni aperte','Ultimo controllo ordine e pulizia']];
+ S.camere.slice().sort(function(a,b){return a.n-b.n}).forEach(function(c){var lc=S.ctrl.filter(function(x){return x.camera==c.n}).sort(function(a,b){return b.ts-a.ts})[0];C.push([c.n,c.ala,Math.floor(c.n/100),c.cap,c.stato,S.arredi.filter(function(a){return a.camera==c.n&&!a.dismesso}).length,openS(c.n).length,lc?dt(lc.ts)+(lc.ko?' ('+lc.ko+' da correggere)':' (conforme)'):''])});
+ var A=[['Codice QR','Numero di serie','Tipo','Descrizione','Camerata','Ala','Piano','Condizione','Stato','Guasti aperti','Censito il']];
+ S.arredi.forEach(function(a){A.push([a.qr,a.sn,a.tipo,a.desc,a.camera,ala[a.camera]||'',Math.floor(a.camera/100),a.cond,a.dismesso?'dismesso':'in uso',S.segn.filter(function(s){return s.arredo===a.qr&&s.stato!=='chiusa'}).length,dt(a.ts)])});
+ var G=[['Data rilevazione','Camerata','Ala','Arredo (codice QR)','Categoria','Priorità','Descrizione','Stato']];
+ S.segn.slice().sort(function(a,b){return b.ts-a.ts}).forEach(function(s){G.push([s.ril?fd(s.ril):dt(s.ts),s.camera,ala[s.camera]||'',s.arredo||'',s.cat,s.prio,s.desc,s.stato])});
+ return [{n:'Camerate',rows:C},{n:'Arredi',rows:A},{n:'Segnalazioni',rows:G}]}
+function expx(){var b=xlsx(xdata()),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='camerate-'+today()+'.xlsx';document.body.appendChild(a);a.click();a.remove();V.msg='File Excel creato: cercalo nella cartella Download.';render()}
+/*XE*/
 function savePh(id){V.pendS.forEach(function(p,i){pOp(function(st){st.put({k:'s:'+id+'|'+i,r:'s:'+id,d:p})})});V.pendS=[]}
 function act(a,v){
  var now=Date.now(),x;V.msg='';
@@ -145,6 +183,7 @@ function act(a,v){
  else if(a==='chiudi'||a==='riapri'){x=S.segn.find(function(s){return s.id==v});if(x){x.stato=a==='chiudi'?'chiusa':'aperta';save()}}
  else if(a==='scan')return scan();
  else if(a==='exp')return exp();
+ else if(a==='expx')return expx();
  else if(a==='delfoto'){if(v[0]==='n')V.pend.splice(+v.slice(1),1);else if(v[0]==='q')V.pendS.splice(+v.slice(1),1);else return pOp(function(st){st.delete(v)}).then(render)}
  else if(a==='addarr'){var q=(V.f.qr||'').trim();var d=S.arredi.find(function(y){return y.qr===q});
   if(!q||!V.f.camera)V.msg='Servono camerata e codice QR.';
@@ -152,6 +191,9 @@ function act(a,v){
   else{S.arredi.push({qr:q,sn:V.f.sn||'',desc:V.f.desc||'',tipo:V.f.tipo,camera:+V.f.camera,cond:'buono',dismesso:false,ts:now,st:[]});V.pend.forEach(function(p,i){pOp(function(st){st.put({k:'a:'+q+'|'+now+i,r:'a:'+q,d:p})})});V.pend=[];V.f.qr='';V.f.sn='';V.f.desc='';V.msg='Salvato. Camerata '+V.f.camera+': '+S.arredi.filter(function(y){return y.camera==V.f.camera&&!y.dismesso}).length+' arredi.';save()}}
  else if(a==='edit'){V.pendS=[];V.edit=V.edit===v?null:v;x=S.arredi.find(function(y){return y.qr===v});if(x){V.f.ecamera=String(x.camera);V.f.econd=x.cond}}
  else if(a==='saveedit'){x=S.arredi.find(function(y){return y.qr===V.edit});if(x){if(String(x.camera)!==String(V.f.ecamera))x.st.push({d:now,da:x.camera,a:+V.f.ecamera});x.camera=+V.f.ecamera;x.cond=V.f.econd;save();V.edit=null}}
+ else if(a==='showd')V.showD=!V.showD;
+ else if(a==='ripr'){x=S.arredi.find(function(y){return y.qr===v});if(x){x.dismesso=false;save()}}
+ else if(a==='elim'){if(confirm('Eliminare definitivamente questo arredo e le sue foto? Non si può annullare. Le segnalazioni collegate restano.')){S.arredi=S.arredi.filter(function(y){return y.qr!==v});save();V.msg='Arredo eliminato.';pAll().then(function(all){var ks=all.filter(function(o){return o.r==='a:'+v}).map(function(o){return o.k});return pOp(function(st){ks.forEach(function(k){st.delete(k)})})}).then(render)}}
  else if(a==='dismetti'){x=S.arredi.find(function(y){return y.qr===V.edit});if(x){x.dismesso=!x.dismesso;save();V.edit=null}}
  else if(a==='segarr'){x=S.arredi.find(function(y){return y.qr===V.edit});if(x){S.segn.push({id:now,camera:x.camera,arredo:x.qr,cat:V.f.ecat,prio:'media',desc:V.f.edesc||'',stato:'aperta',ts:now,ril:V.f.edata||today()});savePh(now);V.f.edesc='';V.f.edata=today();save();V.msg='Guasto segnalato.'}}
  else if(a==='addseg'){if(!V.f.g_camera)V.msg='Scegli la camerata.';else{S.segn.push({id:now,camera:+V.f.g_camera,arredo:(V.f.g_arredo||'').trim(),cat:V.f.g_cat,prio:V.f.g_prio,desc:V.f.g_desc||'',stato:'aperta',ts:now,ril:V.f.g_data||today()});savePh(now);V.f.g_desc='';V.f.g_arredo='';V.f.g_data=today();V.msg='Segnalazione salvata.';save()}}
