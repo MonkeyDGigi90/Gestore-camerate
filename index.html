@@ -37,7 +37,7 @@ var $=function(s){return document.querySelector(s)};
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
 var TIPI=['Letto','Armadio','Scrivania','Comodino','Scarpiera','Sedia','Lampada','Altro'],CONDS=['buono','usurato','da sostituire'],CATS=['Idraulico','Elettrico','Riscaldamento','Infissi','Altro'],PRIO=['bassa','media','urgente'],STATI=['agibile','in manutenzione','non idonea'];
 var VOCI=['Letti rifatti','Armadi e scarpiere in ordine','Scrivanie e comodini sgombri','Pavimento pulito','Bagno pulito','Cestini svuotati','Finestre e tende in ordine'];
-var VER='4',K='camerate_v1',S=null;
+var VER='5',K='camerate_v1',S=null;
 function today(){return new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10)}
 var V={tab:'cam',piano:2,sel:null,edit:null,msg:'',warn:false,c:{},pend:[],pendS:[],f:{g_data:today(),edata:today(),tipo:'Letto',n_ala:'Levante',n_cap:'8',g_cat:'Idraulico',g_prio:'media',ecat:'Idraulico',econd:'buono'}};
 try{S=JSON.parse(localStorage.getItem(K))}catch(e){}
@@ -79,7 +79,7 @@ function detail(c){
  +'<div class="card"><p class="t">Ordine e pulizia</p><p class="s">'+(lc?'Ultimo controllo: '+dt(lc.ts)+', '+(lc.ko?lc.ko+' da correggere':'conforme'):'Nessun controllo eseguito.')+'</p>'
  +VOCI.map(function(v,i){var s=V.c[i];return '<div class="li" style="display:block"><div class="row"><span style="flex:1">'+v+'</span><button class="'+(s==='ok'?'on':'')+'" data-a="cv" data-v="'+i+'|ok">Ok</button><button class="'+(s==='ko'?'on':'')+'" data-a="cv" data-v="'+i+'|ko">Da correggere</button></div>'+(s==='ko'?inp('cn'+i,'Nota'):'')+'</div>'}).join('')
  +'<p class="s">'+n+' di '+VOCI.length+' controllate</p><button class="pri" data-a="savec">Salva controllo</button>'+msg()+'</div>'
- +'<div class="card"><p class="t">Segnalazioni aperte</p>'+(openS(c.n).map(segItem).join('')||'<p class="s">Nessuna segnalazione aperta.</p>')+'</div><div class="card"><p class="t">Arredi ('+A.length+')</p>'+(A.map(function(a){return '<div class="li"><span>'+a.tipo+' '+esc(a.qr)+'</span><span class="s">'+a.cond+'</span></div>'}).join('')||'<p class="s">Nessun arredo censito.</p>')+'</div>'}
+ +'<div class="card"><p class="t">Segnalazioni aperte</p>'+(openS(c.n).map(segItem).join('')||'<p class="s">Nessuna segnalazione aperta.</p>')+'</div><div class="card"><p class="t">Arredi ('+A.length+')</p>'+(A.map(function(a){return '<div class="li"><span>'+a.tipo+' '+esc(a.qr)+'</span><span class="s">'+a.cond+'</span></div>'}).join('')||'<p class="s">Nessun arredo censito.</p>')+'</div><div class="card"><p class="t">Elimina camerata</p><p class="s">Si può eliminare solo se non ha arredi in uso né segnalazioni aperte. Vengono eliminati anche i dati collegati ormai chiusi (arredi dismessi, segnalazioni chiuse, controlli, foto).</p><button data-a="delcam" style="color:var(--kot)">Elimina camerata '+c.n+'</button>'+(V.mdel?'<p class="s">'+esc(V.mdel)+'</p>':'')+'</div>'}
 
 function arrView(){
  var q=(V.f.q||'').toLowerCase();
@@ -170,7 +170,7 @@ function expx(){var b=xlsx(xdata()),a=document.createElement('a');a.href=URL.cre
 /*XE*/
 function savePh(id){V.pendS.forEach(function(p,i){pOp(function(st){st.put({k:'s:'+id+'|'+i,r:'s:'+id,d:p})})});V.pendS=[]}
 function act(a,v){
- var now=Date.now(),x;V.msg='';
+ var now=Date.now(),x;V.msg='';V.mdel='';
  if(a==='tab'){V.tab=v;V.sel=null;V.edit=null;V.pendS=[]}
  else if(a==='piano'){V.piano=+v;V.sel=null}
  else if(a==='sel'){V.sel=+v;V.c={}}
@@ -191,6 +191,13 @@ function act(a,v){
   else{S.arredi.push({qr:q,sn:V.f.sn||'',desc:V.f.desc||'',tipo:V.f.tipo,camera:+V.f.camera,cond:'buono',dismesso:false,ts:now,st:[]});V.pend.forEach(function(p,i){pOp(function(st){st.put({k:'a:'+q+'|'+now+i,r:'a:'+q,d:p})})});V.pend=[];V.f.qr='';V.f.sn='';V.f.desc='';V.msg='Salvato. Camerata '+V.f.camera+': '+S.arredi.filter(function(y){return y.camera==V.f.camera&&!y.dismesso}).length+' arredi.';save()}}
  else if(a==='edit'){V.pendS=[];V.edit=V.edit===v?null:v;x=S.arredi.find(function(y){return y.qr===v});if(x){V.f.ecamera=String(x.camera);V.f.econd=x.cond}}
  else if(a==='saveedit'){x=S.arredi.find(function(y){return y.qr===V.edit});if(x){if(String(x.camera)!==String(V.f.ecamera))x.st.push({d:now,da:x.camera,a:+V.f.ecamera});x.camera=+V.f.ecamera;x.cond=V.f.econd;save();V.edit=null}}
+ else if(a==='delcam'){var n=V.sel,A=S.arredi.filter(function(y){return y.camera==n}),Au=A.filter(function(y){return !y.dismesso}).length,O=openS(n).length;
+  if(Au||O)V.mdel='Non si può eliminare: '+(Au?Au+(Au>1?' arredi in uso (spostali o dismettili)':' arredo in uso (spostalo o dismettilo)'):'')+(Au&&O?' e ':'')+(O?O+(O>1?' segnalazioni aperte (chiudile)':' segnalazione aperta (chiudila)'):'')+'.';
+  else if(confirm('Eliminare la camerata '+n+' e i dati collegati (arredi dismessi, segnalazioni chiuse, controlli e relative foto)? Non si può annullare.')){
+   var qs=A.map(function(y){return y.qr}),ids=S.segn.filter(function(t){return t.camera==n}).map(function(t){return t.id});
+   S.arredi=S.arredi.filter(function(y){return y.camera!=n});S.segn=S.segn.filter(function(t){return t.camera!=n});S.ctrl=S.ctrl.filter(function(y){return y.camera!=n});S.camere=S.camere.filter(function(c){return c.n!=n});
+   V.piano=Math.floor(n/100);V.sel=null;save();V.msg='Camerata '+n+' eliminata.';
+   pAll().then(function(all){var ks=all.filter(function(o){return qs.some(function(q){return o.r==='a:'+q})||ids.some(function(i){return o.r==='s:'+i})}).map(function(o){return o.k});return pOp(function(st){ks.forEach(function(k){st.delete(k)})})}).then(render)}}
  else if(a==='showd')V.showD=!V.showD;
  else if(a==='ripr'){x=S.arredi.find(function(y){return y.qr===v});if(x){x.dismesso=false;save()}}
  else if(a==='elim'){if(confirm('Eliminare definitivamente questo arredo e le sue foto? Non si può annullare. Le segnalazioni collegate restano.')){S.arredi=S.arredi.filter(function(y){return y.qr!==v});save();V.msg='Arredo eliminato.';pAll().then(function(all){var ks=all.filter(function(o){return o.r==='a:'+v}).map(function(o){return o.k});return pOp(function(st){ks.forEach(function(k){st.delete(k)})})}).then(render)}}
