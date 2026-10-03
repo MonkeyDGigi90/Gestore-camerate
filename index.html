@@ -37,7 +37,7 @@ var $=function(s){return document.querySelector(s)};
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
 var TIPI=['Letto','Armadio','Scrivania','Comodino','Scarpiera','Sedia','Lampada','Altro'],CONDS=['buono','usurato','da sostituire'],CATS=['Idraulico','Elettrico','Riscaldamento','Infissi','Altro'],PRIO=['bassa','media','urgente'],STATI=['agibile','in manutenzione','non idonea'];
 var VOCI=['Letti rifatti','Armadi e scarpiere in ordine','Scrivanie e comodini sgombri','Pavimento pulito','Bagno pulito','Cestini svuotati','Finestre e tende in ordine'];
-var VER='9',K='camerate_v1',S=null;
+var VER='10',K='camerate_v1',S=null;
 function today(){return new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10)}
 var V={tab:'cam',piano:2,sel:null,edit:null,msg:'',warn:false,c:{},pend:[],pendS:[],f:{g_data:today(),edata:today(),tipo:'Letto',n_ala:'Levante',n_cap:'8',g_cat:'Idraulico',g_prio:'media',ecat:'Idraulico',econd:'buono'}};
 try{S=JSON.parse(localStorage.getItem(K))}catch(e){}
@@ -80,7 +80,7 @@ function detail(c){
  var A=S.arredi.filter(function(a){return a.camera==c.n&&!a.dismesso});
  var lc=S.ctrl.filter(function(x){return x.camera==c.n}).sort(function(a,b){return b.ts-a.ts})[0];
  var n=Object.keys(V.c).length;
- return '<button data-a="back">Torna alla griglia</button><div class="card"><p class="t">'+esc(c.tipo||'Camerata')+' '+c.n+(c.nome?' · '+esc(c.nome):'')+'</p><p class="s">Ala '+c.ala+', '+pn(Math.floor(c.n/100))+(isC?', '+c.cap+' posti':'')+'</p><select data-st="'+c.n+'">'+opt(STATI,c.stato)+'</select><div class="row"><button class="pri" data-a="toseg" data-v="'+c.n+'">Segnala guasto</button><button data-a="toarr" data-v="'+c.n+'">Aggiungi arredo</button></div></div>'
+ return '<button data-a="back">Torna alla griglia</button><div class="card"><p class="t">'+esc(c.tipo||'Camerata')+' '+c.n+(c.nome?' · '+esc(c.nome):'')+'</p><p class="s">Ala '+c.ala+', '+pn(Math.floor(c.n/100))+(isC?', '+c.cap+' posti':'')+'</p><select data-st="'+c.n+'">'+opt(STATI,c.stato)+'</select><div class="row"><button class="pri" data-a="toseg" data-v="'+c.n+'">Segnala guasto</button><button data-a="toarr" data-v="'+c.n+'">Aggiungi arredo</button></div><button data-a="editcam" style="margin-top:8px">'+(V.ecam===c.n?'Chiudi modifica':'Modifica dati')+'</button></div>'+(V.ecam===c.n?'<div class="card"><p class="t">Modifica</p><label class="s">Uso del locale</label><select data-f="m_tipo">'+opt(TIPI_L,V.f.m_tipo)+'</select><label class="s">Nome (facoltativo)</label>'+inp('m_nome','Nome')+'<label class="s">Ala</label><select data-f="m_ala">'+opt(['Levante','Ponente'],V.f.m_ala)+'</select>'+(V.f.m_tipo==='Camerata'?'<label class="s">Posti letto</label>'+inp('m_cap','Posti','number'):'')+'<button class="pri" data-a="savecam" style="margin-top:8px">Salva modifiche</button>'+(V.mmod?'<p class="s">'+esc(V.mmod)+'</p>':'')+'</div>':'')
  +(isC?'<div class="card"><p class="t">Ordine e pulizia</p><p class="s">'+(lc?'Ultimo controllo: '+dt(lc.ts)+', '+(lc.ko?lc.ko+' da correggere':'conforme'):'Nessun controllo eseguito.')+'</p>'
  +VOCI.map(function(v,i){var s=V.c[i];return '<div class="li" style="display:block"><div class="row"><span style="flex:1">'+v+'</span><button class="'+(s==='ok'?'on':'')+'" data-a="cv" data-v="'+i+'|ok">Ok</button><button class="'+(s==='ko'?'on':'')+'" data-a="cv" data-v="'+i+'|ko">Da correggere</button></div>'+(s==='ko'?inp('cn'+i,'Nota'):'')+'</div>'}).join('')
  +'<p class="s">'+n+' di '+VOCI.length+' controllate</p><button class="pri" data-a="savec">Salva controllo</button>'+msg()+'</div>':'')
@@ -175,11 +175,11 @@ function expx(){var b=xlsx(xdata()),a=document.createElement('a');a.href=URL.cre
 /*XE*/
 function savePh(id){V.pendS.forEach(function(p,i){pOp(function(st){st.put({k:'s:'+id+'|'+i,r:'s:'+id,d:p})})});V.pendS=[]}
 function act(a,v){
- var now=Date.now(),x;V.msg='';V.mdel='';
+ var now=Date.now(),x;V.msg='';V.mdel='';V.mmod='';
  if(a==='tab'){V.tab=v;V.sel=null;V.edit=null;V.pendS=[]}
  else if(a==='piano'){V.piano=+v;V.sel=null}
- else if(a==='sel'){V.sel=+v;V.c={}}
- else if(a==='back')V.sel=null;
+ else if(a==='sel'){V.sel=+v;V.c={};V.ecam=null}
+ else if(a==='back'){V.sel=null;V.ecam=null}
  else if(a==='toseg'){V.tab='seg';V.f.g_camera=v;V.sel=null}
  else if(a==='toarr'){V.tab='arr';V.f.camera=v;V.sel=null}
  else if(a==='cv'){var pp=v.split('|');V.c[pp[0]]=pp[1]}
@@ -203,6 +203,8 @@ function act(a,v){
    S.arredi=S.arredi.filter(function(y){return y.camera!=n});S.segn=S.segn.filter(function(t){return t.camera!=n});S.ctrl=S.ctrl.filter(function(y){return y.camera!=n});S.camere=S.camere.filter(function(c){return c.n!=n});
    V.piano=Math.floor(n/100);V.sel=null;save();V.msg=nm+' eliminata.';
    pAll().then(function(all){var ks=all.filter(function(o){return qs.some(function(q){return o.r==='a:'+q})||ids.some(function(i){return o.r==='s:'+i})}).map(function(o){return o.k});return pOp(function(st){ks.forEach(function(k){st.delete(k)})})}).then(render)}}
+ else if(a==='editcam'){var c0=S.camere.find(function(x){return x.n==V.sel});if(V.ecam===V.sel)V.ecam=null;else if(c0){V.ecam=V.sel;V.f.m_tipo=c0.tipo||'Camerata';V.f.m_nome=c0.nome||'';V.f.m_ala=c0.ala;V.f.m_cap=String(c0.cap||8)}}
+ else if(a==='savecam'){var c1=S.camere.find(function(x){return x.n==V.sel});if(c1){var tp1=V.f.m_tipo||'Camerata',cp=+V.f.m_cap;if(tp1==='Camerata'&&!(cp>=1&&cp<=200))V.mmod='Indica i posti letto (da 1 a 200).';else{c1.tipo=tp1;c1.nome=(V.f.m_nome||'').trim();c1.ala=V.f.m_ala;c1.cap=tp1==='Camerata'?cp:0;save();V.mmod='Modifiche salvate.'}}}
  else if(a==='showd')V.showD=!V.showD;
  else if(a==='ripr'){x=S.arredi.find(function(y){return y.qr===v});if(x){x.dismesso=false;save()}}
  else if(a==='elim'){if(confirm('Eliminare definitivamente questo arredo e le sue foto? Non si può annullare. Le segnalazioni collegate restano.')){S.arredi=S.arredi.filter(function(y){return y.qr!==v});save();V.msg='Arredo eliminato.';pAll().then(function(all){var ks=all.filter(function(o){return o.r==='a:'+v}).map(function(o){return o.k});return pOp(function(st){ks.forEach(function(k){st.delete(k)})})}).then(render)}}
@@ -220,7 +222,8 @@ app.addEventListener('change',function(e){var t=e.target;
    return shrink(f).then(function(d){if(pl){pl.push(d);render()}else return pOp(function(st){st.put({k:r+'|'+Date.now(),r:r,d:d})}).then(render)})}).catch(function(){V.msg='Foto non salvata.';render()})}
  else if(t.dataset.imp){if(t.files[0])imp(t.files[0])}
  else if(t.dataset.st){var c=S.camere.find(function(x){return x.n==t.dataset.st});if(c){c.stato=t.value;save();render()}}
- else if(t.dataset.f==='q'){V.f.q=t.value;render()}});
+ else if(t.dataset.f==='q'){V.f.q=t.value;render()}
+ else if(t.dataset.f==='m_tipo'){V.f.m_tipo=t.value;render()}});
 render();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(function(){});
 if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();
