@@ -37,7 +37,7 @@ var $=function(s){return document.querySelector(s)};
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
 var TIPI=['Letto','Armadio','Scrivania','Comodino','Scarpiera','Sedia','Lampada','Altro'],CONDS=['buono','usurato','da sostituire'],CATS=['Idraulico','Elettrico','Riscaldamento','Infissi','Altro'],PRIO=['bassa','media','urgente'],STATI=['agibile','in manutenzione','non idonea'];
 var VOCI=['Letti rifatti','Armadi e scarpiere in ordine','Scrivanie e comodini sgombri','Pavimento pulito','Bagno pulito','Cestini svuotati','Finestre e tende in ordine'];
-var VER='11',K='camerate_v1',S=null;
+var VER='12',K='camerate_v1',S=null;
 function today(){return new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10)}
 var V={tab:'cam',piano:2,sel:null,edit:null,msg:'',warn:false,c:{},pend:[],pendS:[],f:{g_data:today(),edata:today(),tipo:'Letto',n_ala:'Levante',n_cap:'8',g_cat:'Idraulico',g_prio:'media',ecat:'Idraulico',econd:'buono'}};
 try{S=JSON.parse(localStorage.getItem(K))}catch(e){}
@@ -54,6 +54,7 @@ var TIPI_L=['Camerata','Magazzino','Ufficio','Bagno','Altro'];
 var pn=function(p){return p===1?'Terra':p+'° piano'};
 var pianiList=function(){var a=[1,2,3,4];S.camere.forEach(function(c){var p=Math.floor(c.n/100);if(a.indexOf(p)<0)a.push(p)});return a.sort(function(x,y){return x-y})};
 var tl=function(c){return (c.tipo==='Altro'&&c.nome)?c.nome:(c.tipo||'Camerata')};
+var cellLabels=function(c){var l1=(c.tipo&&c.tipo!=='Camerata')?tl(c):'',l2=(c.nome&&c.nome!==l1)?c.nome:'',st='display:block;overflow-wrap:anywhere';return (l1?'<small style="'+st+'">'+esc(l1)+'</small>':'')+(l2?'<small style="'+st+';font-weight:600">'+esc(l2)+'</small>':'')};
 var loc=function(n){var c=S.camere.find(function(x){return x.n==n});return (c?tl(c):'Camerata')+' '+n};
 var openS=function(n){return S.segn.filter(function(s){return s.camera==n&&s.stato!=='chiusa'})};
 var stc=function(c){return c.stato==='non idonea'?'ko':(openS(c.n).length?'wa':'ok')};
@@ -71,7 +72,7 @@ function camView(){
  if(V.sel!=null){var c=S.camere.find(function(x){return x.n==V.sel});if(c)return detail(c)}
  var h='<div class="row">'+pianiList().map(function(p){return '<button style="flex:1" class="'+(V.piano==p?'on':'')+'" data-a="piano" data-v="'+p+'">'+pn(p)+'</button>'}).join('')+'</div><div class="cols">';
  ['Levante','Ponente'].forEach(function(a){
-  h+='<div><p class="s">Ala '+a+'</p><div class="g">'+S.camere.filter(function(c){return Math.floor(c.n/100)==V.piano&&c.ala===a}).sort(function(x,y){return x.n-y.n}).map(function(c){var o=openS(c.n).length;return '<button class="cell '+stc(c)+'" data-a="sel" data-v="'+c.n+'"><b>'+c.n+'</b><small>'+(c.stato==='non idonea'?'non idonea':o?o+(o>1?' aperte':' aperta'):'agibile')+'</small>'+(c.tipo&&c.tipo!=='Camerata'?'<small style="display:block">'+esc(tl(c))+'</small>':'')+'</button>'}).join('')+'</div></div>'});
+  h+='<div><p class="s">Ala '+a+'</p><div class="g">'+S.camere.filter(function(c){return Math.floor(c.n/100)==V.piano&&c.ala===a}).sort(function(x,y){return x.n-y.n}).map(function(c){var o=openS(c.n).length;return '<button class="cell '+stc(c)+'" data-a="sel" data-v="'+c.n+'"><b>'+c.n+'</b><small>'+(c.stato==='non idonea'?'non idonea':o?o+(o>1?' aperte':' aperta'):'agibile')+'</small>'+cellLabels(c)+'</button>'}).join('')+'</div></div>'});
  h+='</div><p class="s">Verde: agibile. Giallo: segnalazioni aperte. Rosso: non idonea.</p>';
  h+='<div class="card"><p class="t">Aggiungi camerata o locale</p><div class="row"><select data-f="n_tipo">'+opt(TIPI_L,V.f.n_tipo)+'</select>'+inp('n_num','Numero','number')+'</div><div class="row"><select data-f="n_ala">'+opt(['Levante','Ponente'],V.f.n_ala)+'</select>'+inp('n_cap','Posti (solo camerate)','number')+'</div>'+inp('n_nome','Nome (con Altro: scrivi cosa è, es. Bar)')+'<button data-a="addcam">Aggiungi</button>'+msg()+'</div>';
  return h}
