@@ -37,6 +37,11 @@ button.cell.ok{box-shadow:inset 0 -4px 0 var(--okb)}button.cell.wa{box-shadow:in
 .ph{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.th{width:68px;height:68px;object-fit:cover;border-radius:12px;border:1px solid var(--bd)}
 video{width:100%;border-radius:14px;margin:8px 0;background:#000}
 button.cell.sel{outline:2px solid var(--ac);outline-offset:2px}
+.th{cursor:zoom-in}
+.zoom{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,.92);z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px}
+.zoom img{max-width:100%;max-height:78vh;object-fit:contain;border-radius:8px}
+.zoom .zb{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;justify-content:center}
+
 .rt{width:100%;border-collapse:collapse;font-size:12px;margin:6px 0 14px}
 .rt th,.rt td{border-bottom:1px solid var(--bd);padding:4px 6px;text-align:left;vertical-align:top}
 .rt th{font-size:11px;color:var(--tx2);text-transform:uppercase;letter-spacing:.4px}
@@ -56,7 +61,7 @@ var $=function(s){return document.querySelector(s)};
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
 var TIPI=['Letto','Armadio','Scrivania','Comodino','Scarpiera','Sedia','Lampada','Altro'],CONDS=['buono','usurato','da sostituire'],CATS=['Idraulico','Elettrico','Riscaldamento','Infissi','Altro'],PRIO=['bassa','media','urgente'],STATI=['agibile','in manutenzione','non idonea'];
 var VOCI=['Letti rifatti','Armadi e scarpiere in ordine','Scrivanie e comodini sgombri','Pavimento pulito','Bagno pulito','Cestini svuotati','Finestre e tende in ordine'];
-var VER='17',K='camerate_v1',S=null;
+var VER='18',K='camerate_v1',S=null;
 function today(){return new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10)}
 var V={tab:'cam',piano:2,sel:null,edit:null,msg:'',warn:false,c:{},pend:[],pendS:[],pendC:[],f:{rep_m:today().slice(0,7),gg_cat:'Idraulico',gg_prio:'media',giro_scope:'Tutte le camerate',g_data:today(),edata:today(),tipo:'Letto',n_ala:'Levante',n_cap:'8',g_cat:'Idraulico',g_prio:'media',ecat:'Idraulico',econd:'buono'}};
 try{S=JSON.parse(localStorage.getItem(K))}catch(e){}
@@ -83,7 +88,7 @@ var dt=function(t){return new Date(t).toLocaleDateString('it-IT')};
 var fd=function(s){var p=s.split('-');return p[2]+'/'+p[1]+'/'+p[0]};
 var msg=function(){return V.msg?'<p class="s">'+esc(V.msg)+'</p>':''};
 var foto=function(r){return '<div class="ph" data-ref="'+esc(r)+'"></div><label class="btn">Aggiungi foto<input type="file" accept="image/*" capture="environment" data-photo="'+esc(r)+'"></label>'};
-function thumbs(){pAll().then(function(all){document.querySelectorAll('.ph').forEach(function(el){var r=el.dataset.ref;var l=r==='new'?V.pend.map(function(d,i){return{k:'n'+i,d:d}}):r==='newseg'?V.pendS.map(function(d,i){return{k:'q'+i,d:d}}):r==='newcl'?V.pendC.map(function(d,i){return{k:'k'+i,d:d}}):all.filter(function(o){return o.r===r});el.innerHTML=l.map(function(o){return '<span><img class="th" src="'+o.d+'" alt="Foto"><button data-a="delfoto" data-v="'+o.k+'" aria-label="Elimina foto" style="min-height:0;padding:0 6px">x</button></span>'}).join('')})})}
+function thumbs(){pAll().then(function(all){ZL=[];document.querySelectorAll('.ph').forEach(function(el){var r=el.dataset.ref;var l=r==='new'?V.pend.map(function(d,i){return{k:'n'+i,d:d}}):r==='newseg'?V.pendS.map(function(d,i){return{k:'q'+i,d:d}}):r==='newcl'?V.pendC.map(function(d,i){return{k:'k'+i,d:d}}):all.filter(function(o){return o.r===r});var dl=l.map(function(o){return o.d});el.innerHTML=l.map(function(o,ix){ZL.push({l:dl,i:ix});return '<span><img class="th" data-a="zoom" data-v="'+(ZL.length-1)+'" src="'+o.d+'" alt="Foto"><button data-a="delfoto" data-v="'+o.k+'" aria-label="Elimina foto" style="min-height:0;padding:0 6px">x</button></span>'}).join('')})})}
 
 function segItem(s){var c=s.stato==='chiusa';return '<div class="li"><div><b>'+esc(s.cat)+'</b> · '+s.prio+'<p class="s">'+loc(s.camera)+(s.arredo?', arredo '+esc(s.arredo):'')+' · '+(s.ril?'rilevato il '+fd(s.ril):dt(s.ts))+' · '+s.stato+(vecchia(s)?' · <b style="color:var(--wat)">da oltre '+cfg().seg+' giorni</b>':'')+'</p><p style="margin:0">'+esc(s.desc)+'</p>'+foto('s:'+s.id)+(s.cl?'<p class="s" style="margin:4px 0 0">Chiusa il '+dt(s.cl.d)+(s.cl.nota?': '+esc(s.cl.nota):'')+'</p><div class="ph" data-ref="c:'+s.id+'"></div>':'')+'</div><div style="display:flex;flex-direction:column;gap:6px"><button data-a="'+(c?'riapri':'chiudi')+'" data-v="'+s.id+'">'+(c?'Riapri':(V.cl===s.id?'Annulla':'Chiudi'))+'</button><button data-a="editsg" data-v="'+s.id+'">'+(V.es===s.id?'Annulla':'Modifica')+'</button></div></div>'+(V.es===s.id?segEdit(s):'')+(V.cl===s.id?segClose(s):'')}
 
@@ -141,7 +146,7 @@ function render(){
  if(!V.f.camera)V.f.camera=String(cams()[0]||'');
  if(!V.f.g_camera)V.f.g_camera=String(cams()[0]||'');
  h+=V.rep?reportView():V.tab==='cam'?camView():V.tab==='arr'?arrView():V.tab==='seg'?segView():V.tab==='cerca'?cercaView():datiView();
- $('#app').innerHTML=h;thumbs();reattach()}
+ if(V.z)h+=zoomView();$('#app').innerHTML=h;thumbs();reattach()}
 
 async function scan(){
  if(!('BarcodeDetector' in window)||!navigator.mediaDevices){V.msg='La scansione non è disponibile qui. Digita il codice.';return render()}
@@ -367,6 +372,8 @@ function labNew(){var n=Math.max(1,Math.min(200,+V.f.lab_n||24)),p=(V.f.lab_p||'
 function labLoc(){var c=+V.f.lab_cam||cams()[0],L=S.arredi.filter(function(a){return a.camera==c&&!a.dismesso}).map(function(a){return {code:a.qr,l1:a.tipo,l2:a.sn||''}});
  if(!L.length){V.msg='Nessun arredo in '+loc(c).toLowerCase()+'.';return render()}
  printHtml(labelSheet(L))}
+var ZL=[];
+function zoomView(){var z=V.z,n=z.l.length;return '<div class="zoom" data-a="zoomx"><img src="'+z.l[z.i]+'" alt="Foto"><p style="color:#fff;margin:8px 0 0;font-size:13px">'+(z.i+1)+' di '+n+' · tocca la foto per chiudere</p><div class="zb">'+(n>1?'<button data-a="zoomp" aria-label="Foto precedente">‹ Precedente</button><button data-a="zoomn" aria-label="Foto successiva">Successiva ›</button>':'')+'<button class="pri" data-a="zoomx">Chiudi</button></div></div>'}
 function reattach(){if(V.istream){var iv=$('#ivid');if(iv){iv.srcObject=V.istream;iv.hidden=false;var pr=iv.play();if(pr&&pr.catch)pr.catch(function(){})}}}
 function stopInv(){if(V.istream){V.istream.getTracks().forEach(function(t){t.stop()});V.istream=null}}
 function invAdd(c){c=(c||'').trim();if(!c)return;var I=V.inv,a=S.arredi.find(function(y){return y.qr===c});
@@ -446,6 +453,10 @@ function act(a,v){
  else if(a==='savesg'){x=S.segn.find(function(t){return t.id===V.es});if(x){var cn=+V.f.es_camera;if(cams().indexOf(cn)<0)V.msg='Scegli un\'ubicazione valida.';else{x.camera=cn;x.cat=V.f.es_cat;x.prio=V.f.es_prio;x.desc=V.f.es_desc||'';x.ril=V.f.es_data||x.ril;x.arredo=(V.f.es_arredo||'').trim();save();V.es=null}}}
  else if(a==='toarredo'){x=S.arredi.find(function(y){return y.qr===v});if(x){V.tab='arr';V.edit=v;V.sel=null;V.sum=null;edFill(x)}}
  else if(a==='tocam'){V.tab='cam';V.sel=+v;V.c={};V.ecam=null;V.inv=null}
+ else if(a==='zoom'){var ze=ZL[+v];if(ze)V.z={l:ze.l.slice(),i:ze.i}}
+ else if(a==='zoomx')V.z=null;
+ else if(a==='zoomp'){if(V.z)V.z.i=(V.z.i+V.z.l.length-1)%V.z.l.length}
+ else if(a==='zoomn'){if(V.z)V.z.i=(V.z.i+1)%V.z.l.length}
  else if(a==='gsearch'){}
  else if(a==='gstart'){var gl=giroList(V.f.giro_scope||'Tutte le camerate');if(!gl.length)V.msg='Nessuna camerata da percorrere.';else{V.giro={l:gl,i:0,ok:0,ko:0,sk:0};V.c={};V.sel=null;V.inv=null}}
  else if(a==='gexit'){V.giro=null;V.c={}}
