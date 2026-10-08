@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="it"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Caserma T.Testero</title>
+<title>Infrastrutture</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#1f3a5f">
 <link rel="icon" href="icon-192.png">
@@ -66,7 +66,7 @@ var $=function(s){return document.querySelector(s)};
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
 var TIPI=['Letto','Armadio','Scrivania','Comodino','Scarpiera','Sedia','Lampada','Altro'],CONDS=['buono','usurato','da sostituire'],CATS=['Idraulico','Elettrico','Riscaldamento','Infissi','Altro'],PRIO=['bassa','media','urgente'],STATI=['agibile','in manutenzione','non idonea'];
 var VOCI=['Letti rifatti','Armadi e scarpiere in ordine','Scrivanie e comodini sgombri','Pavimento pulito','Bagno pulito','Cestini svuotati','Finestre e tende in ordine'];
-var VER='21',K='camerate_v1',S=null;
+var VER='22',K='camerate_v1',S=null;
 function today(){return new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10)}
 var V={tab:'cam',piano:'2° piano',sel:null,edit:null,msg:'',warn:false,c:{},pend:[],pendS:[],pendC:[],f:{rep_m:today().slice(0,7),gg_cat:'Idraulico',gg_prio:'media',giro_scope:'Tutte le camerate',g_data:today(),edata:today(),tipo:'Letto',n_ala:'Levante',n_cap:'8',g_cat:'Idraulico',g_prio:'media',ecat:'Idraulico',econd:'buono'}};
 try{S=JSON.parse(localStorage.getItem(K))}catch(e){}
@@ -150,7 +150,7 @@ function datiView(){
 
 function render(){
  var old=!S.bk||Date.now()-S.bk>7*864e5;
- var h='<h1>Caserma “T.Testero”</h1>';
+ var h='<h1>Infrastrutture</h1>';
  if(V.warn)h+='<div class="warn">Salvataggio locale non riuscito: esporta subito i dati dalla scheda Dati.</div>';
  else if(old)h+='<div class="warn">Backup: '+(S.bk?'più di 7 giorni fa':'mai eseguito')+'. Vai in Dati.</div>';
  h+='<nav>'+[['cam','Ed. Storico'],['arr','Arredi'],['seg','Segnalazioni'],['cerca','Cerca'],['dat','Dati']].map(function(t){return '<button data-a="tab" data-v="'+t[0]+'" class="'+(V.tab===t[0]?'on':'')+'">'+t[1]+'</button>'}).join('')+'</nav>';
@@ -171,7 +171,7 @@ async function scan(){
 async function exp(){
  var ph=await pAll();S.bk=Date.now();save();
  var b=new Blob([JSON.stringify({v:1,S:S,ph:ph})],{type:'application/json'});
- var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='camerate-backup-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();
+ var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='infrastrutture-backup-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();
  V.msg='Backup creato: cerca il file nella cartella Download.';render()}
 function imp(f){var r=new FileReader();r.onload=async function(){
  try{var o=JSON.parse(r.result);if(!o.S||!o.S.camere)throw 0;if(!confirm('Sostituire i dati di questo dispositivo con il backup?'))return;
@@ -211,7 +211,7 @@ function xdata(){var ala={};S.camere.forEach(function(c){ala[c.n]=c.ala});
  var G=[['Data rilevazione','Ubicazione','Ala','Arredo (codice QR)','Categoria','Priorità','Descrizione','Stato','Chiusa il','Nota di chiusura']];
  S.segn.slice().sort(function(a,b){return b.ts-a.ts}).forEach(function(s){G.push([s.ril?fd(s.ril):dt(s.ts),s.camera,ala[s.camera]||'',s.arredo||'',s.cat,s.prio,s.desc,s.stato,s.cl?dt(s.cl.d):'',s.cl?(s.cl.nota||''):''])});
  return [{n:'Locali',rows:C},{n:'Arredi',rows:A},{n:'Segnalazioni',rows:G}]}
-function expx(){var b=xlsx(xdata()),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='camerate-'+today()+'.xlsx';document.body.appendChild(a);a.click();a.remove();V.msg='File Excel creato: cercalo nella cartella Download.';render()}
+function expx(){var b=xlsx(xdata()),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='infrastrutture-'+today()+'.xlsx';document.body.appendChild(a);a.click();a.remove();V.msg='File Excel creato: cercalo nella cartella Download.';render()}
 /*XE*/
 var DAY=864e5;
 function cfg(){S.cfg=S.cfg||{ctrl:30,seg:14};return S.cfg}
@@ -281,10 +281,10 @@ function saveEdit(){var x=S.arredi.find(function(y){return y.qr===V.edit});if(!x
   pAll().then(function(all){var mv=all.filter(function(o){return o.r==='a:'+old});return pOp(function(st){mv.forEach(function(o){o.r='a:'+nq;st.put(o)})})}).then(render).catch(function(){render()})}
  save();V.edit=null}
 async function shareBk(){
- var ph=await pAll(),txt=JSON.stringify({v:1,S:S,ph:ph}),nm='camerate-backup-'+today()+'.json',f=null;
+ var ph=await pAll(),txt=JSON.stringify({v:1,S:S,ph:ph}),nm='infrastrutture-backup-'+today()+'.json',f=null;
  try{var c1=new File([txt],nm,{type:'application/json'});if(navigator.canShare&&navigator.canShare({files:[c1]}))f=c1;else{var c2=new File([txt],nm,{type:'text/plain'});if(navigator.canShare&&navigator.canShare({files:[c2]}))f=c2}}catch(e){}
  if(!f){V.msg='La condivisione non è disponibile su questo dispositivo: usa Esporta backup.';return render()}
- try{await navigator.share({files:[f],title:'Backup Camerate'});S.bk=Date.now();save();V.msg='Backup condiviso.'}catch(e){if(!e||e.name!=='AbortError')V.msg='Condivisione non riuscita: usa Esporta backup.'}
+ try{await navigator.share({files:[f],title:'Backup Infrastrutture'});S.bk=Date.now();save();V.msg='Backup condiviso.'}catch(e){if(!e||e.name!=='AbortError')V.msg='Condivisione non riuscita: usa Esporta backup.'}
  render()}
 /*QR*/
 var QRT={1:[10,[1,16],[0,0],[]],2:[16,[1,28],[0,0],[6,18]],3:[26,[1,44],[0,0],[6,22]],4:[18,[2,32],[0,0],[6,26]],5:[24,[2,43],[0,0],[6,30]],6:[16,[4,27],[0,0],[6,34]]};
