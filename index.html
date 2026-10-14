@@ -70,9 +70,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <script>
 var $=function(s){return document.querySelector(s)};
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
-var TIPI=['Letto','Armadio','Scrivania','Comodino','Scarpiera','Sedia','Lampada','Altro'],CONDS=['buono','usurato','da sostituire'],CATS=['Idraulico','Elettrico','Riscaldamento','Infissi','Altro'],PRIO=['bassa','media','urgente'],STATI=['agibile','in manutenzione','non idonea'];
+var TIPI=['Letto','Armadio','Scrivania','Comodino','Scarpiera','Sedia','Lampada','Altro'],CONDS=['buono','usurato','da sostituire'],CATS=['Idraulico','Elettrico','Riscaldamento','Infissi','Etichette','Altro'],PRIO=['bassa','media','urgente'],STATI=['agibile','in manutenzione','non idonea'];
 var VOCI=['Letti rifatti','Armadi e scarpiere in ordine','Scrivanie e comodini sgombri','Pavimento pulito','Bagno pulito','Cestini svuotati','Finestre e tende in ordine'];
-var VER='26',K='camerate_v1',S=null;
+var VER='27',K='camerate_v1',S=null;
 function today(){return new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10)}
 var V={tab:'cam',piano:'2° piano',sel:null,edit:null,msg:'',warn:false,c:{},pend:[],pendS:[],pendC:[],f:{rep_m:today().slice(0,7),gg_cat:'Idraulico',gg_prio:'media',giro_scope:'Tutte le camerate',g_data:today(),edata:today(),tipo:'Letto',n_ala:'Levante',n_cap:'8',g_cat:'Idraulico',g_prio:'media',ecat:'Idraulico',econd:'buono'}};
 try{S=JSON.parse(localStorage.getItem(K))}catch(e){}
@@ -134,11 +134,11 @@ function detail(c){
  var li=S.inv.filter(function(x){return x.camera==c.n}).sort(function(a,b){return b.ts-a.ts})[0];
  var A=S.arredi.filter(function(a){return a.camera==c.n&&!a.dismesso});
  var lc=S.ctrl.filter(function(x){return x.camera==c.n}).sort(function(a,b){return b.ts-a.ts})[0];
- var n=Object.keys(V.c).length;
+ var n=ctrlN();
  return (isWide()?'':'<button data-a="back">Torna alla griglia</button>')+'<div class="card"><p class="t">'+esc(tl(c))+' '+c.n+(c.nome&&tl(c)!==c.nome?' · '+esc(c.nome):'')+'</p><p class="s">Ala '+c.ala+', '+pianoOf(c)+(isC?', '+c.cap+' posti':'')+'</p><select data-st="'+c.n+'">'+opt(STATI,c.stato)+'</select><div class="row"><button class="pri" data-a="toseg" data-v="'+c.n+'">Segnala guasto</button><button data-a="toarr" data-v="'+c.n+'">Aggiungi arredo</button></div><div class="row" style="margin-top:8px"><button data-a="inv" style="flex:1">Inventario</button><button data-a="prtsheet" data-v="'+c.n+'" style="flex:1">Stampa scheda</button><button data-a="editcam" style="flex:1">'+(V.ecam===c.n?'Chiudi modifica':'Modifica dati')+'</button></div></div>'+(V.ecam===c.n?'<div class="card"><p class="t">Modifica</p><label class="s">Numero</label>'+inp('m_num','Numero','number')+'<label class="s">Piano</label><select data-f="m_piano">'+opt(pianiList(),V.f.m_piano)+'</select><label class="s">Uso del locale</label><select data-f="m_tipo">'+opt(TIPI_L,V.f.m_tipo)+'</select><label class="s">Nome (con Altro è il testo mostrato)</label>'+inp('m_nome','Nome')+'<label class="s">Ala</label><select data-f="m_ala">'+opt(['Levante','Ponente'],V.f.m_ala)+'</select>'+(V.f.m_tipo==='Camerata'?'<label class="s">Posti letto</label>'+inp('m_cap','Posti','number'):'')+'<button class="pri" data-a="savecam" style="margin-top:8px">Salva modifiche</button>'+(V.mmod?'<p class="s">'+esc(V.mmod)+'</p>':'')+'</div>':'')
- +(isC?'<div class="card"><p class="t">Ordine e pulizia</p><p class="s">'+(lc?'Ultimo controllo: '+dt(lc.ts)+', '+(lc.ko?lc.ko+' da correggere':'conforme'):'Nessun controllo eseguito.')+'</p>'
- +VOCI.map(function(v,i){var s=V.c[i];return '<div class="li" style="display:block"><div class="row"><span style="flex:1">'+v+'</span><button class="'+(s==='ok'?'on':'')+'" data-a="cv" data-v="'+i+'|ok">Ok</button><button class="'+(s==='ko'?'on':'')+'" data-a="cv" data-v="'+i+'|ko">Da correggere</button></div>'+(s==='ko'?inp('cn'+i,'Nota'):'')+'</div>'}).join('')
- +'<p class="s">'+n+' di '+VOCI.length+' controllate</p><button class="pri" data-a="savec">Salva controllo</button>'+msg()+'</div>':'')
+ +(isC?'<div class="card"><p class="t">Ordine e pulizia</p><p class="s">'+(lc?'Ultimo controllo: '+dt(lc.ts)+', '+(lc.ko?lc.ko+' da correggere':'conforme')+etTxt(lc):'Nessun controllo eseguito.')+'</p>'
+ +VOCI.map(function(v,i){var s=V.c[i];return '<div class="li" style="display:block"><div class="row"><span style="flex:1">'+v+'</span><button class="'+(s==='ok'?'on':'')+'" data-a="cv" data-v="'+i+'|ok">Ok</button><button class="'+(s==='ko'?'on':'')+'" data-a="cv" data-v="'+i+'|ko">Da correggere</button></div>'+(s==='ko'?inp('cn'+i,'Nota'):'')+'</div>'}).join('')+etRows(c)
+ +'<p class="s">'+n+' di '+ctrlTot()+' controllate</p><button class="pri" data-a="savec">Salva controllo</button>'+msg()+'</div>':'')
  +'<div class="card"><p class="t">Segnalazioni aperte</p>'+(openS(c.n).map(segItem).join('')||'<p class="s">Nessuna segnalazione aperta.</p>')+'</div><div class="card"><p class="t">Arredi ('+A.length+')</p>'+(li?'<p class="s">Ultimo inventario: '+dt(li.ts)+', '+li.tro+' trovati su '+li.att+(li.man?', '+li.man+' mancanti':'')+'</p>':'')+(A.map(function(a){return '<div class="li"><span>'+a.tipo+' '+esc(a.qr)+'</span><span class="s">'+a.cond+'</span></div>'}).join('')||'<p class="s">Nessun arredo censito.</p>')+'</div><div class="card"><p class="t">Elimina '+esc(tl(c).toLowerCase())+'</p><p class="s">Si può eliminare solo se non ha arredi in uso né segnalazioni aperte. Vengono eliminati anche i dati collegati ormai chiusi (arredi dismessi, segnalazioni chiuse, controlli, foto).</p><button data-a="delcam" style="color:var(--kot)">Elimina '+tl(c).toLowerCase()+' '+c.n+'</button>'+(V.mdel?'<p class="s">'+esc(V.mdel)+'</p>':'')+'</div>'}
 
 function arrView(){
@@ -226,7 +226,7 @@ function xdata(){var ala={};S.camere.forEach(function(c){ala[c.n]=c.ala});
  var G=[['Data rilevazione','Ubicazione','Ala','Arredo (codice QR)','Categoria','Priorità','Descrizione','Stato','Chiusa il','Nota di chiusura','Ditta','Costo (€)','Assegnata a','Intervento previsto']];
  S.segn.slice().sort(function(a,b){return b.ts-a.ts}).forEach(function(s){G.push([s.ril?fd(s.ril):dt(s.ts),s.camera,ala[s.camera]||'',s.arredo||'',s.cat,s.prio,s.desc,s.stato,s.cl?dt(s.cl.d):'',s.cl?(s.cl.nota||''):'',s.cl?(s.cl.ditta||''):'',(s.cl&&s.cl.costo!=null)?s.cl.costo:'',s.assegn||'',s.prev?fd(s.prev):''])});
  var SA=[['Codice QR','Tipo','Data','Evento']];S.arredi.forEach(function(a){arrEvents(a).sort(function(x,y){return x.d-y.d}).forEach(function(e){SA.push([a.qr,a.tipo,dt(e.d),e.t])})});
- var CT=[['Data','Ubicazione','Piano','Esito','Voci da correggere']];S.ctrl.slice().sort(function(a,b){return b.ts-a.ts}).forEach(function(c){CT.push([dt(c.ts),c.camera,pianoN(c.camera),c.ko?'con rilievi':'conforme',c.ko||0])});
+ var CT=[['Data','Ubicazione','Piano','Esito','Voci da correggere','Etichetta porta','Etichette letti rovinate','Etichette letti mancanti']];S.ctrl.slice().sort(function(a,b){return b.ts-a.ts}).forEach(function(c){CT.push([dt(c.ts),c.camera,pianoN(c.camera),c.ko?'con rilievi':'conforme',c.ko||0,c.et?(ETP[c.et.porta]||''):'',c.et?c.et.rov:'',c.et?c.et.man:''])});
  var IV=[['Data','Ubicazione','Attesi','Trovati','Mancanti','Da verificare']];S.inv.slice().sort(function(a,b){return b.ts-a.ts}).forEach(function(i){IV.push([dt(i.ts),i.camera,i.att,i.tro,i.man,i.ex])});
  var MM=[['Mese','Rilevate','Chiuse','Tempo medio di chiusura (giorni)','Spesa (€)']];statData().months.forEach(function(m){MM.push([mLabel(m.ym),m.ril,m.chi,m.avg==null?'':Math.round(m.avg*10)/10,Math.round(m.spesa*100)/100])});
  var MA=[['Voce','Ubicazione','Intervallo','Ultima eseguita','Prossima scadenza','Stato','Ditta']],MS=[['Voce','Ubicazione','Data','Ditta','Importo (€)','Nota']];S.man.forEach(function(m){var st=manSt(m);MA.push([m.nome,manUb(m),ivTxt(m),m.ultima?fd(m.ultima):'',fd(m.prox),st.k==='sc'?'scaduta da '+st.d+' giorni':st.k==='is'?'in scadenza':'ok',m.ditta||'']);(m.stor||[]).forEach(function(e){MS.push([m.nome,manUb(m),fd(e.d),e.ditta||'',e.costo!=null?Math.round(e.costo*100)/100:'',e.nota||''])})});
@@ -371,7 +371,30 @@ function qrSvg(text){var M=qrMatrix(text);if(!M)return '';var n=M.length,q=4,d='
 var MESI=['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
 function ymOf(t){return new Date(t-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,7)}
 function printHtml(h){$('#pv').innerHTML=h;window.print()}
-function saveCtrl(n){var now=Date.now(),k=0;VOCI.forEach(function(t,i){if(V.c[i]==='ko'){k++;S.segn.push({id:now+i,camera:n,arredo:'',cat:'Ordine e pulizia',prio:'bassa',desc:t+(V.f['cn'+i]?': '+V.f['cn'+i]:''),stato:'aperta',ts:now,ril:today()})}V.f['cn'+i]=''});S.ctrl.push({camera:n,ts:now,ko:k});V.c={};save();return k}
+function ctrlTot(){return VOCI.length+2}
+function ctrlN(){var k=0;VOCI.forEach(function(v,i){if(V.c[i])k++});if(V.c.pt)k++;if(V.c.lt)k++;return k}
+function ctrlDone(){return ctrlN()===ctrlTot()}
+function etNum(x){var v=parseInt(x,10);return isNaN(v)?0:v}
+var ETP={ok:'in ordine',rov:'rovinata',man:'mancante'};
+function etShort(c){if(!c||!c.et)return '';var e=c.et,p=[];if(e.rov)p.push(e.rov+(e.rov===1?' rovinata':' rovinate'));if(e.man)p.push(e.man+(e.man===1?' mancante':' mancanti'));return 'porta '+(ETP[e.porta]||'in ordine')+'; letti '+(p.length?p.join(', '):'in ordine')}
+function etTxt(c){return c&&c.et?' · etichette: '+etShort(c):''}
+function etRows(c){var cap=c?c.cap:0,p=V.c.pt,l=V.c.lt;
+ var h='<p class="s" style="margin:12px 0 0">Etichette di riconoscimento</p>';
+ h+='<div class="li" style="display:block"><span>Etichetta fuori dalla porta d\'ingresso</span><div class="row" style="margin-top:6px"><button style="flex:1" class="'+(p==='ok'?'on':'')+'" data-a="etp" data-v="ok">In ordine</button><button style="flex:1" class="'+(p==='rov'?'on':'')+'" data-a="etp" data-v="rov">Rovinata</button><button style="flex:1" class="'+(p==='man'?'on':'')+'" data-a="etp" data-v="man">Mancante</button></div></div>';
+ h+='<div class="li" style="display:block"><div class="row"><span style="flex:1">Etichette sui posti letto ('+cap+(cap===1?' posto':' posti')+')</span><button class="'+(l==='ok'?'on':'')+'" data-a="etl" data-v="ok">Tutte in ordine</button><button class="'+(l==='ko'?'on':'')+'" data-a="etl" data-v="ko">Da correggere</button></div>'+(l==='ko'?'<div class="row" style="margin-top:6px">'+inp('et_rov','Rovinate o illeggibili','number')+inp('et_man','Mancanti','number')+'</div><p class="s">Quante, su '+cap+(cap===1?' posto':' posti')+'.</p>':'')+'</div>';
+ return h}
+function etVal(n){if(V.c.lt!=='ko')return '';var c=S.camere.find(function(x){return x.n==n}),cap=c?c.cap:0,r=etNum(V.f.et_rov),m=etNum(V.f.et_man);
+ if(r<0||m<0)return 'I numeri delle etichette non possono essere negativi.';
+ if(r+m<1)return 'Indica quante etichette dei posti letto sono rovinate o mancanti.';
+ if(r+m>cap)return 'Rovinate più mancanti non possono superare i posti ('+cap+').';return ''}
+function saveCtrl(n){var now=Date.now(),k=0,c=S.camere.find(function(x){return x.n==n}),cap=c?c.cap:0;
+ VOCI.forEach(function(t,i){if(V.c[i]==='ko'){k++;S.segn.push({id:now+i,camera:n,arredo:'',cat:'Ordine e pulizia',prio:'bassa',desc:t+(V.f['cn'+i]?': '+V.f['cn'+i]:''),stato:'aperta',ts:now,ril:today()})}V.f['cn'+i]=''});
+ var et={porta:V.c.pt||'ok',rov:0,man:0};
+ if(et.porta!=='ok'){k++;S.segn.push({id:now+20,camera:n,arredo:'',cat:'Etichette',prio:'bassa',desc:'Etichetta fuori dalla porta d\'ingresso: '+(et.porta==='rov'?'rovinata o illeggibile':'mancante'),stato:'aperta',ts:now,ril:today()})}
+ if(V.c.lt==='ko'){et.rov=Math.max(0,etNum(V.f.et_rov));et.man=Math.max(0,etNum(V.f.et_man));
+  if(et.rov+et.man>0){k++;var pr=[];if(et.rov)pr.push(et.rov+(et.rov===1?' rovinata o illeggibile':' rovinate o illeggibili'));if(et.man)pr.push(et.man+(et.man===1?' mancante':' mancanti'));S.segn.push({id:now+21,camera:n,arredo:'',cat:'Etichette',prio:'bassa',desc:'Etichette dei posti letto: '+pr.join(', ')+' (su '+cap+(cap===1?' posto':' posti')+')',stato:'aperta',ts:now,ril:today()})}}
+ V.f.et_rov='';V.f.et_man='';
+ S.ctrl.push({camera:n,ts:now,ko:k,et:et});V.c={};save();return k}
 function ctrlRows(){return VOCI.map(function(v,i){var s=V.c[i];return '<div class="li" style="display:block"><div class="row"><span style="flex:1">'+v+'</span><button class="'+(s==='ok'?'on':'')+'" data-a="cv" data-v="'+i+'|ok">Ok</button><button class="'+(s==='ko'?'on':'')+'" data-a="cv" data-v="'+i+'|ko">Da correggere</button></div>'+(s==='ko'?inp('cn'+i,'Nota'):'')+'</div>'}).join('')}
 function giroList(scope){var PL=pianiList(),C=S.camere.filter(function(c){return (c.tipo||'Camerata')==='Camerata'});
  if(scope==='Solo da controllare')C=C.filter(scad);
@@ -380,9 +403,9 @@ function giroList(scope){var PL=pianiList(),C=S.camere.filter(function(c){return
 function giroStartCard(){return '<div class="card"><p class="t">Giro guidato</p><p class="s">Ti porta camerata dopo camerata, in ordine di piano e ala.</p><select data-f="giro_scope">'+opt(['Tutte le camerate','Solo da controllare'].concat(pianiList()),V.f.giro_scope)+'</select><button class="pri" data-a="gstart" style="margin-top:6px">Avvia giro</button>'+msg()+'</div>'}
 function giroView(){var G=V.giro;
  if(G.i>=G.l.length)return '<div class="card"><p class="t">Giro completato</p><p class="s">'+G.ok+' controllate, '+G.ko+' con rilievi, '+G.sk+' saltate.</p><button class="pri" data-a="gexit">Chiudi</button></div>';
- var n=G.l[G.i],c=S.camere.find(function(x){return x.n==n}),pct=Math.round(G.i/G.l.length*100),op=openS(n),k=Object.keys(V.c).length;
+ var n=G.l[G.i],c=S.camere.find(function(x){return x.n==n}),pct=Math.round(G.i/G.l.length*100),op=openS(n),k=ctrlN();
  var h='<button data-a="gexit">Esci dal giro</button><div class="card"><div class="row"><span class="t" style="flex:1">'+(G.i+1)+' di '+G.l.length+'</span><span class="s">'+pct+'%</span></div><div style="height:6px;background:var(--bd);border-radius:6px;overflow:hidden;margin:6px 0 10px"><div style="height:6px;width:'+pct+'%;background:var(--ac)"></div></div><p class="t" style="font-size:18px">'+esc(loc(n))+(c.nome&&c.nome!==tl(c)?' · '+esc(c.nome):'')+'</p><p class="s">Ala '+c.ala+', '+pianoN(n)+', '+c.cap+' posti · '+(lastCtrl(n)?'ultimo controllo '+dt(lastCtrl(n)):'mai controllata')+'</p></div>';
- h+='<div class="card"><p class="t">Ordine e pulizia</p>'+ctrlRows()+'<p class="s">'+k+' di '+VOCI.length+' controllate</p>'+msg()+'</div>';
+ h+='<div class="card"><p class="t">Ordine e pulizia</p>'+ctrlRows()+etRows(c)+'<p class="s">'+k+' di '+ctrlTot()+' controllate</p>'+msg()+'</div>';
  h+='<div class="card"><p class="t">Segnala un guasto</p><div class="g"><select data-f="gg_cat">'+opt(CATS,V.f.gg_cat)+'</select><select data-f="gg_prio">'+opt(PRIO,V.f.gg_prio)+'</select></div><textarea data-f="gg_desc" rows="2" placeholder="Descrizione">'+esc(V.f.gg_desc)+'</textarea>'+foto('newseg')+'<div><button data-a="ggadd" style="margin-top:8px">Aggiungi guasto</button></div></div>';
  h+='<div class="card"><p class="t">Segnalazioni aperte ('+op.length+')</p>'+(op.map(segItem).join('')||'<p class="s">Nessuna.</p>')+'</div>';
  h+='<div class="row"><button data-a="gprev"'+(G.i===0?' disabled':'')+' style="flex:1">Indietro</button><button data-a="gskip" style="flex:1">Salta</button><button class="pri" data-a="gnext" style="flex:2">Salva e avanti</button></div>';
@@ -409,7 +432,7 @@ function reportHtml(ym){
  H+='<h3>Manutenzioni periodiche eseguite nel mese ('+manDone.length+')</h3>'+tbl(['Data','Voce','Dove','Ditta','Importo','Nota'],manDone);
  H+='<h3>Manutenzioni periodiche scadute o in scadenza ('+manIs.length+')</h3>'+tbl(['Voce','Dove','Prossima scadenza','Stato'],manIs.map(function(m){return [m.nome,manUb(m),fd(m.prox),manTxt(m)]}));
  H+='<h3>Segnalazioni ricorrenti ('+rec.length+')</h3>'+tbl(['Dove','Segnalazioni'],rec.map(function(g){return [g.label,g.n]}));
- H+='<h3>Controlli di ordine e pulizia ('+ct.length+')</h3>'+tbl(['Data','Ubicazione','Esito'],ct.map(function(c){return [dt(c.ts),loc(c.camera),c.ko?c.ko+' da correggere':'conforme']}));
+ H+='<h3>Controlli di ordine e pulizia ('+ct.length+')</h3>'+tbl(['Data','Ubicazione','Esito','Etichette'],ct.map(function(c){return [dt(c.ts),loc(c.camera),c.ko?c.ko+' da correggere':'conforme',etShort(c)]}));
  H+='<h3>Inventari ('+inv.length+')</h3>'+tbl(['Data','Ubicazione','Trovati','Mancanti','Da verificare'],inv.map(function(i){return [dt(i.ts),loc(i.camera),i.tro+' su '+i.att,i.man,i.ex]}));
  H+='<h3>Arredi da sostituire ('+ds.length+')</h3>'+tbl(['Arredo','Ubicazione','Numero di serie'],ds.map(function(a){return [a.tipo+' '+a.qr,loc(a.camera),a.sn||'']}));
  return H+'</div>'}
@@ -555,7 +578,7 @@ function sheetHtml(n){var c=S.camere.find(function(x){return x.n==n});if(!c)retu
  var A=S.arredi.filter(function(a){return a.camera==n&&!a.dismesso}),op=S.segn.filter(function(s){return s.camera==n&&s.stato!=='chiusa'}).sort(function(a,b){return sk(a)-sk(b)});
  var lc=S.ctrl.filter(function(x){return x.camera==n}).sort(function(a,b){return b.ts-a.ts})[0],li=S.inv.filter(function(x){return x.camera==n}).sort(function(a,b){return b.ts-a.ts})[0];
  var mn=S.man.filter(function(m){return m.cam==n}).sort(function(a,b){return a.prox<b.prox?-1:1}),rows=[];
- if(isC)rows.push(['Ultimo controllo di ordine e pulizia',lc?dt(lc.ts)+' – '+(lc.ko?lc.ko+' da correggere':'conforme'):'mai eseguito']);
+ if(isC)rows.push(['Ultimo controllo di ordine e pulizia',lc?dt(lc.ts)+' – '+(lc.ko?lc.ko+' da correggere':'conforme')+etTxt(lc):'mai eseguito']);
  rows.push(['Ultimo inventario',li?dt(li.ts)+' – trovati '+li.tro+' su '+li.att+(li.man?', mancanti '+li.man:''):'mai eseguito']);
  var H='<div class="rep pg"><h2>'+esc(loc(n))+(c.nome&&c.nome!==tl(c)?' · '+esc(c.nome):'')+'</h2><p class="s">Caserma “T.Testero” · '+esc(pianoOf(c))+', ala '+c.ala+(isC?' · '+c.cap+' posti':'')+' · stato: '+c.stato+' · stampata il '+dt(Date.now())+'</p>'+tbl(['Voce','Dato'],rows);
  H+='<h3>Segnalazioni aperte ('+op.length+')</h3>'+tbl(['Rilevata il','Categoria','Priorità','Descrizione','Stato'],op.map(function(s){return [s.ril?fd(s.ril):dt(s.ts),s.cat,s.prio,s.desc+(s.arredo?' (arredo '+s.arredo+')':''),s.stato==='in lavorazione'?'in lavorazione'+(s.assegn?' ('+s.assegn+')':'')+(s.prev?', previsto '+fd(s.prev):''):'da assegnare']}));
@@ -613,7 +636,9 @@ function act(a,v){
  else if(a==='toseg'){V.tab='seg';V.f.g_camera=v;V.sel=null}
  else if(a==='toarr'){V.tab='arr';V.f.camera=v;V.sel=null}
  else if(a==='cv'){var pp=v.split('|');V.c[pp[0]]=pp[1]}
- else if(a==='savec'){if(Object.keys(V.c).length<VOCI.length)V.msg='Completa tutte le voci.';else{var k=0;VOCI.forEach(function(t,i){if(V.c[i]==='ko'){k++;S.segn.push({id:now+i,camera:V.sel,arredo:'',cat:'Ordine e pulizia',prio:'bassa',desc:t+(V.f['cn'+i]?': '+V.f['cn'+i]:''),stato:'aperta',ts:now,ril:today()})}V.f['cn'+i]=''});S.ctrl.push({camera:V.sel,ts:now,ko:k});V.c={};save();V.msg=k?'Controllo salvato: '+k+' segnalazioni create.':'Controllo salvato: conforme.'}}
+ else if(a==='etp'){V.c.pt=v}
+ else if(a==='etl'){V.c.lt=v;if(v==='ok'){V.f.et_rov='';V.f.et_man=''}}
+ else if(a==='savec'){if(!ctrlDone())V.msg='Completa tutte le voci.';else if(etVal(V.sel))V.msg=etVal(V.sel);else{var k=saveCtrl(V.sel);V.msg=k?'Controllo salvato: '+k+' segnalazioni create.':'Controllo salvato: conforme.'}}
  else if(a==='addcam'){var n=+V.f.n_num,n2=V.f.n_fine?+V.f.n_fine:n,tp=V.f.n_tipo||'Camerata';
   if(!(n>=1&&n<1000)||!(n2>=n&&n2<1000))V.msg='Numero non valido (da 1 a 999).';
   else if(n2-n>99)V.msg='Al massimo 100 locali alla volta.';
@@ -693,7 +718,7 @@ function act(a,v){
  else if(a==='gexit'){V.giro=null;V.c={}}
  else if(a==='gprev'){if(V.giro&&V.giro.i>0){V.giro.i--;V.c={}}}
  else if(a==='gskip'){if(V.giro){V.giro.sk++;V.giro.i++;V.c={}}}
- else if(a==='gnext'){var G=V.giro;if(G){if(Object.keys(V.c).length<VOCI.length)V.msg='Completa tutte le voci.';else{var kk=saveCtrl(G.l[G.i]);G.ok++;if(kk)G.ko++;G.i++;V.c={}}}}
+ else if(a==='gnext'){var G=V.giro;if(G){if(!ctrlDone())V.msg='Completa tutte le voci.';else if(etVal(G.l[G.i]))V.msg=etVal(G.l[G.i]);else{var kk=saveCtrl(G.l[G.i]);G.ok++;if(kk)G.ko++;G.i++;V.c={}}}}
  else if(a==='ggadd'){var G2=V.giro;if(G2){S.segn.push({id:now,camera:G2.l[G2.i],arredo:'',cat:V.f.gg_cat||'Idraulico',prio:V.f.gg_prio||'media',desc:V.f.gg_desc||'',stato:'aperta',ts:now,ril:today()});savePh(now);V.f.gg_desc='';save();V.msg='Guasto segnalato.'}}
  else if(a==='repopen'){V.rep=V.f.rep_m||today().slice(0,7)}
  else if(a==='repclose')V.rep=null;
